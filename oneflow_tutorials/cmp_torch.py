@@ -1,11 +1,12 @@
 import warnings
 warnings.filterwarnings('ignore')
 import sys, os
-sys.path.append(os.path.abspath("../"))
+sys.path.append(os.path.abspath("/data/home/fengwen/package/oneflow/.idea/OneFlow-Pruning"))
 
-import oneflow as torch
-from flowvision.models import resnet18
-import oneflow_pruning as tp
+import torch
+from torchvision.models import resnet18
+import torch_pruning as tp
+
 
 # 0. 准备模型和示例输入
 model = resnet18(pretrained=True).eval()
@@ -21,3 +22,6 @@ pruning_group = DG.get_pruning_group( model.conv1, tp.prune_conv_out_channels, i
 # 3. 修剪与model.conv1耦合的所有分组层
 if DG.check_pruning_group(pruning_group):
     pruning_group.prune()
+
+print("After pruning:")
+print(model)
