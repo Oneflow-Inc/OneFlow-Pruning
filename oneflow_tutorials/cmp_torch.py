@@ -1,7 +1,7 @@
 import warnings
 warnings.filterwarnings('ignore')
 import sys, os
-sys.path.append(os.path.abspath("/data/home/fengwen/package/oneflow/.idea/OneFlow-Pruning"))
+sys.path.append(os.path.abspath("/home/fengwen/OneFlow-Pruning"))
 
 import torch
 from torchvision.models import resnet18

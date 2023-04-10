@@ -21,22 +21,20 @@ class MagnitudeImportance(Importance):
         self.normalizer = normalizer
 
     def _reduce(self, group_imp):
-        """
-        Reduce the group importance tensor based on the specified reduction method.
-        Args:
-            group_imp: tensor of per-channel importance scores for the group
-        Returns:
-            group_imp: tensor of reduced importance scores for the group
-        """
-        reduction_methods = {
-            "sum": lambda x: x.sum(dim=0),
-            "mean": lambda x: x.mean(xdim=0),
-            "max": lambda x: x.max(x, dim=0)[0],
-            "prod": lambda x: torch.prod(x, dim=0),
-            "first": lambda x: x[0],
-            None: lambda x: x
-        }
-        group_imp = reduction_methods[self.group_reduction](group_imp)
+        if self.group_reduction == "sum":
+            group_imp = group_imp.sum(dim=0)
+        elif self.group_reduction == "mean":
+            group_imp = group_imp.mean(dim=0)
+        elif self.group_reduction == "max":
+            group_imp = group_imp.max(dim=0)[0]
+        elif self.group_reduction == "prod":
+            group_imp = torch.prod(group_imp, dim=0)
+        elif self.group_reduction=='first':
+            group_imp = group_imp[0]
+        elif self.group_reduction is None:
+            group_imp = group_imp
+        else: 
+            raise NotImplementedError
         return group_imp
 
     @torch.no_grad()

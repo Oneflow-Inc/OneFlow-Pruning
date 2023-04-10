@@ -245,10 +245,10 @@ class DependencyGraph(object):
 
     def build_dependency(
         self,
-        model: oneflow.nn.Module,
+        model: torch.nn.Module,
         example_inputs: typing.Union[torch.Tensor, typing.Sequence],
         forward_fn: typing.Callable[[
-            oneflow.nn.Module, typing.Union[torch.Tensor, typing.Sequence]], torch.Tensor] = None,
+            torch.nn.Module, typing.Union[torch.Tensor, typing.Sequence]], torch.Tensor] = None,
         output_transform: typing.Callable = None,
         unwrapped_parameters: typing.Dict[nn.Parameter, int] = None,
         customized_pruners: typing.Dict[typing.Any,
@@ -583,7 +583,7 @@ class DependencyGraph(object):
 
             if isinstance(outputs, tuple):
                 outputs = outputs[0]
-            if isinstance(outputs, oneflow.nn.utils.rnn.PackedSequence):
+            if isinstance(outputs, torch.nn.utils.rnn.PackedSequence):
                 outputs = outputs.data
             gradfn2module[outputs.grad_fn] = module
 
@@ -699,6 +699,7 @@ class DependencyGraph(object):
             node = create_node_if_not_exists(grad_fn=grad_fn)
             if hasattr(grad_fn, "next_functions"):
                 for f in grad_fn.next_functions:
+                    f = [f]
                     if f[0] is not None:
                         if (
                             hasattr(f[0], "name")

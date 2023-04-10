@@ -34,6 +34,10 @@ __all__=[
     'prune_parameter_in_channels',
     'prune_multihead_attention_out_channels',
     'prune_multihead_attention_in_channels',
+    'prune_groupnorm_out_channels',
+    'prune_groupnorm_in_channels',
+    'prune_instancenorm_out_channels',
+    'prune_instancenorm_in_channels',
 ]
 
 class BasePruningFunc(ABC):
@@ -87,14 +91,14 @@ class ConvPruner(BasePruningFunc):
         keep_idxs = list(set(range(layer.out_channels)) - set(idxs))
         keep_idxs.sort()
         layer.out_channels = layer.out_channels-len(idxs)
-        if not layer.transposed:
-            layer.weight = oneflow.nn.Parameter(
-                layer.weight.data.clone()[keep_idxs])
-        else:
-            layer.weight = oneflow.nn.Parameter(
-                layer.weight.data.clone()[:, keep_idxs])
+        # if not layer.transposed:
+        #     layer.weight = torch.nn.Parameter(
+        #         layer.weight.data.clone()[keep_idxs])
+        # else:
+        layer.weight = torch.nn.Parameter(
+            layer.weight.data.clone()[keep_idxs])
         if layer.bias is not None:
-            layer.bias = oneflow.nn.Parameter(layer.bias.data.clone()[keep_idxs])
+            layer.bias = torch.nn.Parameter(layer.bias.data.clone()[keep_idxs])
         return layer
 
     def prune_in_channels(self, layer: nn.Module, idxs: Sequence[int]) -> nn.Module:
@@ -103,12 +107,12 @@ class ConvPruner(BasePruningFunc):
         layer.in_channels = layer.in_channels - len(idxs)
         if layer.groups>1:
             keep_idxs = keep_idxs[:len(keep_idxs)//layer.groups]
-        if not layer.transposed:
-            layer.weight = oneflow.nn.Parameter(
-                layer.weight.data.clone()[:, keep_idxs])
-        else:
-            layer.weight = oneflow.nn.Parameter(
-                layer.weight.data.clone()[keep_idxs])
+        # if not layer.transposed:
+        layer.weight = torch.nn.Parameter(
+            layer.weight.data.clone()[:, keep_idxs])
+        # else:
+        #     layer.weight = torch.nn.Parameter(
+        #         layer.weight.data.clone()[keep_idxs])
         # no bias pruning because it does not change the output channels
         return layer
 
@@ -128,9 +132,9 @@ class DepthwiseConvPruner(ConvPruner):
         layer.out_channels = layer.out_channels-len(idxs)
         layer.in_channels = layer.in_channels-len(idxs)
         layer.groups = layer.groups-len(idxs)
-        layer.weight = oneflow.nn.Parameter(layer.weight.data.clone()[keep_idxs])
+        layer.weight = torch.nn.Parameter(layer.weight.data.clone()[keep_idxs])
         if layer.bias is not None:
-            layer.bias = oneflow.nn.Parameter(layer.bias.data.clone()[keep_idxs])
+            layer.bias = torch.nn.Parameter(layer.bias.data.clone()[keep_idxs])
         return layer
 
     prune_in_channels = prune_out_channels
@@ -145,16 +149,16 @@ class LinearPruner(BasePruningFunc):
         keep_idxs = list(set(range(layer.out_features)) - set(idxs))
         keep_idxs.sort()
         layer.out_features = layer.out_features-len(idxs)
-        layer.weight = oneflow.nn.Parameter(layer.weight.data.clone()[keep_idxs])
+        layer.weight = torch.nn.Parameter(layer.weight.data.clone()[keep_idxs])
         if layer.bias is not None:
-            layer.bias = oneflow.nn.Parameter(layer.bias.data.clone()[keep_idxs])
+            layer.bias = torch.nn.Parameter(layer.bias.data.clone()[keep_idxs])
         return layer
 
     def prune_in_channels(self, layer: nn.Module, idxs: Sequence[int]) -> nn.Module:
         keep_idxs = list(set(range(layer.in_features)) - set(idxs))
         keep_idxs.sort()
         layer.in_features = layer.in_features-len(idxs)
-        layer.weight = oneflow.nn.Parameter(
+        layer.weight = torch.nn.Parameter(
             layer.weight.data.clone()[:, keep_idxs])
         return layer
 
@@ -175,9 +179,9 @@ class BatchnormPruner(BasePruningFunc):
         layer.running_mean = layer.running_mean.data.clone()[keep_idxs]
         layer.running_var = layer.running_var.data.clone()[keep_idxs]
         if layer.affine:
-            layer.weight = oneflow.nn.Parameter(
+            layer.weight = torch.nn.Parameter(
                 layer.weight.data.clone()[keep_idxs])
-            layer.bias = oneflow.nn.Parameter(layer.bias.data.clone()[keep_idxs])
+            layer.bias = torch.nn.Parameter(layer.bias.data.clone()[keep_idxs])
         return layer
 
     prune_in_channels = prune_out_channels
@@ -209,9 +213,9 @@ class LayernormPruner(BasePruningFunc):
         keep_idxs = torch.tensor(list(set(range(num_features)) - set(idxs)))
         keep_idxs.sort()
         if layer.elementwise_affine:
-            layer.weight = oneflow.nn.Parameter(
+            layer.weight = torch.nn.Parameter(
                 layer.weight.data.clone().index_select(pruning_dim, keep_idxs))
-            layer.bias = oneflow.nn.Parameter(
+            layer.bias = torch.nn.Parameter(
                 layer.bias.data.clone().index_select(pruning_dim, keep_idxs))
         if pruning_dim != -1:
             layer.normalized_shape = layer.normalized_shape[:pruning_dim] + (
@@ -229,6 +233,45 @@ class LayernormPruner(BasePruningFunc):
     def get_in_channels(self, layer):
         return layer.normalized_shape[self.pruning_dim]
 
+class GroupNormPruner(BasePruningFunc):
+    def prune_out_channels(self, layer: nn.PReLU, idxs: list) -> nn.Module:
+        keep_idxs = list(set(range(layer.num_channels)) - set(idxs))
+        keep_idxs.sort()
+        layer.num_channels = layer.num_channels-len(idxs)
+        if layer.affine:
+            layer.weight = torch.nn.Parameter(
+                layer.weight.data.clone()[keep_idxs])
+            layer.bias = torch.nn.Parameter(layer.bias.data.clone()[keep_idxs])
+        return layer
+    
+    prune_in_channels = prune_out_channels
+
+    def get_out_channels(self, layer):
+        return layer.num_channels
+
+    def get_in_channels(self, layer):
+        return layer.num_channels
+
+class InstanceNormPruner(BasePruningFunc):
+    def prune_out_channels(self, layer: nn.Module, idxs: Sequence[int]) -> nn.Module:
+        keep_idxs = list(set(range(layer.num_features)) - set(idxs))
+        keep_idxs.sort()
+        layer.num_features = layer.num_features-len(idxs)
+        if layer.affine:
+            layer.weight = torch.nn.Parameter(
+                layer.weight.data.clone()[keep_idxs])
+            layer.bias = torch.nn.Parameter(layer.bias.data.clone()[keep_idxs])
+        return layer
+
+    prune_in_channels = prune_out_channels
+
+    def get_out_channels(self, layer):
+        return layer.num_features
+
+    def get_in_channels(self, layer):
+        return layer.num_features
+
+
 class PReLUPruner(BasePruningFunc):
     TARGET_MODULES = ops.TORCH_PRELU
 
@@ -238,7 +281,7 @@ class PReLUPruner(BasePruningFunc):
         keep_idxs = list(set(range(layer.num_parameters)) - set(idxs))
         keep_idxs.sort()
         layer.num_parameters = layer.num_parameters-len(idxs)
-        layer.weight = oneflow.nn.Parameter(layer.weight.data.clone()[keep_idxs])
+        layer.weight = torch.nn.Parameter(layer.weight.data.clone()[keep_idxs])
         return layer
 
     prune_in_channels = prune_out_channels
@@ -262,7 +305,7 @@ class EmbeddingPruner(BasePruningFunc):
         num_features = layer.embedding_dim
         keep_idxs = list(set(range(num_features)) - set(idxs))
         keep_idxs.sort()
-        layer.weight = oneflow.nn.Parameter(
+        layer.weight = torch.nn.Parameter(
             layer.weight.data.clone()[:, keep_idxs])
         layer.embedding_dim = len(keep_idxs)
         return layer
@@ -295,18 +338,18 @@ class LSTMPruner(BasePruningFunc):
             postfix = ['']
         #for l in range(num_layers):
         for pf in postfix:
-            setattr(layer, 'weight_hh_l0'+pf, oneflow.nn.Parameter(
+            setattr(layer, 'weight_hh_l0'+pf, torch.nn.Parameter(
                 getattr(layer, 'weight_hh_l0'+pf).data.clone()[expanded_keep_idxs]))
             if layer.bias:
-                setattr(layer, 'bias_hh_l0'+pf, oneflow.nn.Parameter(
+                setattr(layer, 'bias_hh_l0'+pf, torch.nn.Parameter(
                     getattr(layer, 'bias_hh_l0'+pf).data.clone()[expanded_keep_idxs]))
-            setattr(layer, 'weight_hh_l0'+pf, oneflow.nn.Parameter(
+            setattr(layer, 'weight_hh_l0'+pf, torch.nn.Parameter(
                 getattr(layer, 'weight_hh_l0'+pf).data.clone()[:, keep_idxs]))
 
-            setattr(layer, 'weight_ih_l0'+pf, oneflow.nn.Parameter(
+            setattr(layer, 'weight_ih_l0'+pf, torch.nn.Parameter(
                 getattr(layer, 'weight_ih_l0'+pf).data.clone()[expanded_keep_idxs]))
             if layer.bias:
-                setattr(layer, 'bias_ih_l0'+pf, oneflow.nn.Parameter(
+                setattr(layer, 'bias_ih_l0'+pf, torch.nn.Parameter(
                     getattr(layer, 'bias_ih_l0'+pf).data.clone()[expanded_keep_idxs]))
         layer.hidden_size = len(keep_idxs)
 
@@ -314,10 +357,10 @@ class LSTMPruner(BasePruningFunc):
         num_features = layer.input_size
         keep_idxs = list(set(range(num_features)) - set(idxs))
         keep_idxs.sort()
-        setattr(layer, 'weight_ih_l0', oneflow.nn.Parameter(
+        setattr(layer, 'weight_ih_l0', torch.nn.Parameter(
                     getattr(layer, 'weight_ih_l0').data.clone()[:, keep_idxs]))
         if layer.bidirectional:
-            setattr(layer, 'weight_ih_l0_reverse', oneflow.nn.Parameter(
+            setattr(layer, 'weight_ih_l0_reverse', torch.nn.Parameter(
                     getattr(layer, 'weight_ih_l0_reverse').data.clone()[:, keep_idxs]))
         layer.input_size = len(keep_idxs)
 
@@ -396,15 +439,15 @@ class MultiheadAttentionPruner(BasePruningFunc):
         keep_idxs = list(set(range(linear.out_features)) - set(idxs))
         keep_idxs.sort()
         linear.out_features = linear.out_features-len(idxs)
-        linear.weight = oneflow.nn.Parameter(
+        linear.weight = torch.nn.Parameter(
             linear.weight.data.clone()[keep_idxs])
         if linear.bias is not None:
-            linear.bias = oneflow.nn.Parameter(
+            linear.bias = torch.nn.Parameter(
                 linear.bias.data.clone()[keep_idxs])
         keep_idxs = list(set(range(linear.in_features)) - set(idxs))
         keep_idxs.sort()
         linear.in_features = linear.in_features-len(idxs)
-        linear.weight = oneflow.nn.Parameter(
+        linear.weight = torch.nn.Parameter(
             linear.weight.data.clone()[:, keep_idxs])
         layer.embed_dim = layer.embed_dim - len(idxs)
         return layer
@@ -430,9 +473,10 @@ PrunerBox = {
     ops.OPTYPE.EMBED: EmbeddingPruner(),
     ops.OPTYPE.PARAMETER: ParameterPruner(),
     ops.OPTYPE.MHA: MultiheadAttentionPruner(),
-    ops.OPTYPE.LSTM: LSTMPruner()
+    ops.OPTYPE.LSTM: LSTMPruner(),
+    ops.OPTYPE.GN: GroupNormPruner(),
+    ops.OPTYPE.IN: InstanceNormPruner(),
 }
-
 
 def is_out_channel_pruner(fn):
     return fn in tuple(p.prune_out_channels for p in PrunerBox.values())
@@ -472,3 +516,9 @@ prune_multihead_attention_in_channels = PrunerBox[ops.OPTYPE.MHA].prune_in_chann
 
 prune_lstm_out_channels = PrunerBox[ops.OPTYPE.LSTM].prune_out_channels
 prune_lstm_in_channels = PrunerBox[ops.OPTYPE.LSTM].prune_in_channels
+
+prune_groupnorm_out_channels = PrunerBox[ops.OPTYPE.GN].prune_out_channels
+prune_groupnorm_in_channels = PrunerBox[ops.OPTYPE.GN].prune_in_channels
+
+prune_instancenorm_out_channels = PrunerBox[ops.OPTYPE.IN].prune_out_channels
+prune_instancenorm_in_channels = PrunerBox[ops.OPTYPE.IN].prune_in_channels

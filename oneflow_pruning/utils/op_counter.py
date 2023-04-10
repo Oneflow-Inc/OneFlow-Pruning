@@ -291,7 +291,7 @@ MODULES_MAPPING = {
     nn.RNNCell: rnn_cell_flops_counter_hook,
     nn.LSTMCell: rnn_cell_flops_counter_hook,
     nn.GRUCell: rnn_cell_flops_counter_hook,
-    nn.MultiheadAttention: multihead_attention_counter_hook
+    # nn.MultiheadAttention: multihead_attention_counter_hook
 }
 
 if hasattr(nn, 'GELU'):
