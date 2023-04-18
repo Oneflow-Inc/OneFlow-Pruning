@@ -1,6 +1,7 @@
 import sys, os
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+ROOT=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+print(f'{ROOT=}')
+sys.path.append(ROOT)
 
 import oneflow as torch
 import oneflow_pruning as tp

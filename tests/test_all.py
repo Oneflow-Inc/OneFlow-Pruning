@@ -1,5 +1,6 @@
 import os
 import subprocess
+import datetime
 
 # Define the path of the script to be tested
 script_path = "./"
@@ -18,9 +19,9 @@ for file_name in file_names:
             subprocess.run(f"python {script_file}", shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             print(f"{file_name=} executed successfully")
             with open('log.txt', 'a') as f:
-                f.write(f"{file_name} executed successfully\n")
+                f.write(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {file_name} executed successfully\n")
         except:
             print(f"{file_name=} execution failed")
             with open('log.txt', 'a') as f:
-                f.write(f"{file_name} executed failed!!\n")
+                f.write(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {file_name} executed failed!!\n")
 

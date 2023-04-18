@@ -1,2 +1,2 @@
-torch>=1.0
+oneflow>=0.9.0
 numpy

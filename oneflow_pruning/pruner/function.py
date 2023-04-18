@@ -89,12 +89,12 @@ class ConvPruner(BasePruningFunc):
         keep_idxs = list(set(range(layer.out_channels)) - set(idxs))
         keep_idxs.sort()
         layer.out_channels = layer.out_channels-len(idxs)
-        if not layer.transposed:
-            layer.weight = torch.nn.Parameter(
-                layer.weight.data[keep_idxs])
-        else:
-            layer.weight = torch.nn.Parameter(
-                layer.weight.data[:, keep_idxs])
+        # if not layer.transposed:
+        #     layer.weight = torch.nn.Parameter(
+        #         layer.weight.data[keep_idxs])
+        # else:
+        layer.weight = torch.nn.Parameter(
+            layer.weight.data[:, keep_idxs])
         if layer.bias is not None:
             layer.bias = torch.nn.Parameter(layer.bias.data[keep_idxs])
         return layer
@@ -105,12 +105,12 @@ class ConvPruner(BasePruningFunc):
         layer.in_channels = layer.in_channels - len(idxs)
         if layer.groups>1:
             keep_idxs = keep_idxs[:len(keep_idxs)//layer.groups]
-        if not layer.transposed:
-            layer.weight = torch.nn.Parameter(
-                layer.weight.data[:, keep_idxs])
-        else:
-            layer.weight = torch.nn.Parameter(
-                layer.weight.data[keep_idxs])
+        # if not layer.transposed:
+        #     layer.weight = torch.nn.Parameter(
+        #         layer.weight.data[:, keep_idxs])
+        # else:
+        layer.weight = torch.nn.Parameter(
+            layer.weight.data[keep_idxs])
         # no bias pruning because it does not change the output channels
         return layer
 
