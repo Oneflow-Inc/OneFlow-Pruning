@@ -699,7 +699,6 @@ class DependencyGraph(object):
             node = create_node_if_not_exists(grad_fn=grad_fn)
             if hasattr(grad_fn, "next_functions"):
                 for f in grad_fn.next_functions:
-                    f = [f]
                     if f[0] is not None:
                         if (
                             hasattr(f[0], "name")
