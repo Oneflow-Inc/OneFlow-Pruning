@@ -49,8 +49,8 @@ https://github.com/Oneflow-Inc/OneFlow-Pruning/tree/develop/oneflow_tutorials
 
 ## 可能存在问题
 
-目前只是保证 catbackward  这个判段正确
-OneFlow-pruning库里面 split 和 view 可能存在问题。 还未具体测试。
+OneFlow-pruning库里面 split 和 view 可能存在问题。 
+源仓库代码判断是直接写死的，发现不同可以先直接修改 OneFlow-Pruning/oneflow_pruning/dependency.py 文件绕过。
 
 ```py
 // OneFlow-Pruning/oneflow_pruning/dependency.py:667
