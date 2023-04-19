@@ -79,6 +79,7 @@ AttributeError: module 'oneflow.nn' has no attribute 'MultiheadAttention'
 ## 已修复
 align AutoGrad engine function_node name and next_functions type with pytorch AutoGrad Engine  https://github.com/Oneflow-Inc/OneFlow-Pruning/issues/6
 ## test【-2023-04-18】
+> 0.9.1.dev20230417+cu117
 - oneflow_tutorials目录下.ipynb文件均可以正常执行
 - oneflow_tests目录下测试 日志：log.txt 
 
